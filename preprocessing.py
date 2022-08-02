@@ -26,14 +26,14 @@ class Preprocessing:
             "bins_nb": discret_bins_nb}
 
         if classlabel != None:  # auto: remove rows with missing classlabel value
-            # dfDropedNA = df.dropna(subset=[classlabel])
-            self.df = df.dropna(subset=[classlabel])
-            self.df = df.reset_index(drop=True)
+            df.dropna(subset=[classlabel], inplace=True)
+            df.reset_index(drop=True, inplace= True)
 
         self.fillNA(fillna_option)
 
         if normalization == True:
             self.normalize()
+
         if discret_type != None and discret_bins_nb != None:
             self.discretize(discret_type, discret_bins_nb)
 
