@@ -1,4 +1,5 @@
 from pandas.core.dtypes.common import is_numeric_dtype
+import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler, KBinsDiscretizer
 import math
@@ -25,7 +26,9 @@ class Preprocessing:
             "bins_nb": discret_bins_nb}
 
         if classlabel != None:  # auto: remove rows with missing classlabel value
-            dfDropedNA = df.dropna(subset=[classlabel])
+            # dfDropedNA = df.dropna(subset=[classlabel])
+            self.df = df.dropna(subset=[classlabel])
+            self.df = df.reset_index(drop=True)
 
         self.fillNA(fillna_option)
 
