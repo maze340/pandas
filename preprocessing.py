@@ -26,7 +26,7 @@ class Preprocessing:
             "bins_nb": discret_bins_nb}
 
         if classlabel != None:  # auto: remove rows with missing classlabel value
-            df.dropna(subset=[classlabel], inplace=True)
+            df.dropna(subset=[classlabel], inplace=True)#?-return a copy except if inplace=True
             df.reset_index(drop=True, inplace= True)
 
         self.fillNA(fillna_option)
@@ -40,6 +40,7 @@ class Preprocessing:
         self.encoded_df, self.enc_dec_dict = self.encodeData(self.df)
         self.dir_save = dir_save
         self.saveCleanData(filename)
+        self.savePreproParam()
 
     def fillNA(self, option):
         """
@@ -205,3 +206,4 @@ class Preprocessing:
                         .format(self.prepro_param["fillna"], self.prepro_param["normalization"],
                                 self.prepro_param["discret_type"], self.prepro_param["bins_nb"]))
         fileentry.close()
+
