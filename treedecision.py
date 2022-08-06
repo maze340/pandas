@@ -15,11 +15,13 @@ class Node:
         self.attrVal = attrVal  # attribute value
         self.value = value  # attribute name or label
         self.samplesID = samplesID  # IDs of node's samples
+        self.pb = None
         self.next = next
 
 
 class TreeDecisionClassifier:
-    def __init__(self, dataFrame, classLabel, enc_dec_dict=None, pep=False, max_depth=None, min_samples_leaf=1, builtin=False, dir_save=""):
+    def __init__(self, dataFrame, classLabel, enc_dec_dict=None, pep=False, max_depth=None, min_samples_leaf=1,
+                 builtin=False, dir_save=""):
         """
         :param dataFrame: data frame
         :param class label: string
@@ -32,11 +34,13 @@ class TreeDecisionClassifier:
         self.dataFrame = dataFrame
         self.features_X = self.dataFrame.columns.drop(classLabel)
         self.classLabel = classLabel
-        self.dataLabel = dataFrame[classLabel]
+        # self.dataLabel = dataFrame[classLabel]#test si ok
+        self.labelset = dataFrame[classLabel].unique()
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf if type(min_samples_leaf) != float else math.ceil(
             len(self.dataFrame) * min_samples_leaf)
-
+        self.builtin = builtin
+        self.enc_dec_dict = enc_dec_dict
         # Building model
         if builtin and enc_dec_dict != None:
             self.model, self.predict = self.treeDecisionClassifierLib(enc_dec_dict)
@@ -111,9 +115,12 @@ class TreeDecisionClassifier:
         node = Node()
         node.samplesID = samplesID
         node.attrVal = attrVal
+        # classlabel pb
+        df_sampled = self.dataFrame.loc[samplesID]
+        node.pb = {v: len(df_sampled[df_sampled[self.classLabel] == v]) / len(samplesID) for v in self.labelset}
         if infoD > 0:
             if len(attributes) > 0 and (
-                    not (self.max_depth) or level < self.max_depth):  # prepruning max_depth condition
+                    self.max_depth is None or level < self.max_depth):  # prepruning max_depth condition
                 bestAttr = self.findBestGain(samplesID, attributes)
                 futur_min_samples_leaf = self.dataFrame.loc[samplesID][bestAttr].value_counts().min()
                 if futur_min_samples_leaf >= self.min_samples_leaf:  # prepruning min_samples_leaf condition
@@ -132,8 +139,8 @@ class TreeDecisionClassifier:
                 node.value = self.majorityClass(node)[0]
                 return node
         else:
-            sample = self.dataFrame.loc[samplesID]
-            uniqueLabel = list(sample[self.classLabel])[0]
+            # sample = self.dataFrame.loc[samplesID]#test si ok
+            uniqueLabel = list(df_sampled[self.classLabel])[0]
             node.value = uniqueLabel
             return node
         return node
@@ -203,6 +210,31 @@ class TreeDecisionClassifier:
         pError_leafs = leafs[0] / leafs[1]
         return pError_leafs >= pError_node
 
+    def predictSet(self, samples):
+        """
+        classify each sample of set
+        :param samples: train set or test set
+        :returns: array of class labels
+        """
+        labels = []
+        pbs = []
+
+        for i in range(len(samples)):
+            result = self.predict(samples.iloc[i])
+            if not self.builtin:
+                labels.append(result[0])
+                pbs.append(result[1])
+            else:
+                labels.append(result)
+
+        if self.builtin:
+            enc_dict = self.enc_dec_dict["encode"]
+            encoded_samples = samples.replace(to_replace=enc_dict)
+            pbs = self.model.predict_proba(encoded_samples.values)
+
+        self.pbs = pbs
+        return labels
+
     def findClass(self, sample):
         """
         Predicts class for a given sample
@@ -219,9 +251,17 @@ class TreeDecisionClassifier:
                     attrVal_found = True
                     break
             if attrVal_found == False:
-                return self.majorityClass(node)[0]
+                return self.majorityClass(node)[0], node.pb
+        return node.value, node.pb
 
-        return node.value
+    def predictProba(self, classval):
+        pbs = self.pbs
+        if not self.builtin:
+            pbs_classval = [e[classval] for e in pbs]
+        else:
+            classes = list(self.model.classes_)
+            pbs_classval = list(pbs[:, classes.index(classval)])
+        return pbs_classval
 
     def treeDecisionClassifierLib(self, enc_dec_dict):
         """
@@ -236,7 +276,7 @@ class TreeDecisionClassifier:
 
         # Building Model
         features_X_data = d_copy.loc[:, self.features_X].values
-        target_y_data = d_copy.loc[:, self.classLabel].values
+        target_y_data = df_copy.loc[:, self.classLabel].values
         model = DecisionTreeClassifier(max_depth=self.max_depth, min_samples_leaf=self.min_samples_leaf,
                                        random_state=42, criterion="entropy")
         model.fit(features_X_data, target_y_data)
@@ -247,10 +287,13 @@ class TreeDecisionClassifier:
             :param sampleX: dict like sample {'attribute1': value...}
             :return: string class label
             """
-            encoded_sample = {k: enc_dec_dict["encode"][k][v] for k, v in sampleX.items()}
+            # encoded_sample = {k: enc_dec_dict["encode"][k][v] for k, v in sampleX.items()}#ne check pas si col avec valeures continues
+            encoded_sample = {k: enc_dec_dict["encode"][k][v] if k in enc_dec_dict["encode"].keys() else v for k, v in
+                              sampleX.items()}
+
             encoded_sample = list(encoded_sample.values())
             classvalue = model.predict([encoded_sample])
-            return enc_dec_dict["decode"][self.classLabel][classvalue[0]]
+            return classvalue[0]
 
         return model, findClass
 
@@ -267,6 +310,4 @@ class TreeDecisionClassifier:
         :return: None
         """
         self.model = joblib.load(self.filename)
-
-
 
