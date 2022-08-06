@@ -118,10 +118,6 @@ class Evaluation:
 
     def getAUC(self, classval):
         pbs = self.predict_proba(classval)
-
         y_pred1 = pbs
         y_test = self.target_test
-        
         return roc_auc_score(y_test, y_pred1)
-    
-
