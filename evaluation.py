@@ -1,8 +1,8 @@
-from sklearn.metrics import confusion_matrix, classification_report
-
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve
+import matplotlib.pyplot as plt
 
 class Evaluation:
-    def __init__(self, classlabel, train, test, predict, dir_save=""):
+    def __init__(self, classlabel, train, test, classifier, dir_save=""):
         """
         :param classlabel: string, class label
         :param train: array like of train data
@@ -12,20 +12,26 @@ class Evaluation:
         """
         features_X = train.columns.drop(classlabel)
         target_y = classlabel
-        self.predict = predict
+        self.predict_proba = classifier.predictProba
+        self.model = classifier.model
         self.feature_train, self.target_train = train.loc[:, features_X], train.loc[:, target_y]
         self.feature_test, self.target_test = test.loc[:, features_X], test.loc[:, target_y]
         self.dir_save = dir_save
+
+        # Prediction
+        self.target_train_pred = classifier.predictSet(self.feature_train)
+        self.target_test_pred = classifier.predictSet(self.feature_test)
+        self.target_major_pred = self.predictMaj(self.feature_test, self.target_train)
 
     def script(self):
         """
         executes a serie of functions for complete evaluation
         :return: None
         """
-        # Prediction
-        labels_pred_train = self.predictSet(self.feature_train, self.predict)
-        labels_pred_test = self.predictSet(self.feature_test, self.predict)
-        labels_pred_major = self.predictMaj(self.feature_test, self.target_train)
+        # Predictions
+        labels_pred_train = self.target_train_pred
+        labels_pred_test = self.target_test_pred
+        labels_pred_major = self.target_major_pred
 
         # Evaluation
         cm_train = self.confusionMatrix(self.target_train, labels_pred_train)
@@ -56,20 +62,6 @@ class Evaluation:
         """
         return confusion_matrix(labels_test, labels_pred)
 
-    def predictSet(self, set, predict):
-        """
-        classify each sample of set
-        :param set: train set or test set
-        :param predict: predict function returning classlabel
-        :returns: array of class labels
-        """
-        labels = []
-        for i in range(len(set)):
-            # print(set.iloc[i])
-            labels.append(predict(set.iloc[i]))
-        # print(labels)
-        return labels
-
     def predictMaj(self, feature_test, target_train):
         """
         Predicts data based on majority rule
@@ -99,3 +91,28 @@ class Evaluation:
         f.write(title + "\n")
         f.write(str(value) + "\n")
         f.close()
+
+    def drawROCCurve(self, classval):
+        pbs = self.predict_proba(classval)
+
+        y_pred1 = pbs
+        y_test = self.target_test
+
+        fpr, tpr, thresholds = roc_curve(y_test, y_pred1, pos_label=classval)
+
+        plt.figure(figsize=(6, 4))
+
+        plt.plot(fpr, tpr, linewidth=2)
+
+        plt.plot([0, 1], [0, 1], 'k--')
+
+        plt.rcParams['font.size'] = 12
+
+        plt.title('ROC curve for Gaussian Naive Bayes Classifier for Predicting Salaries')
+
+        plt.xlabel('False Positive Rate (1 - Specificity)')
+
+        plt.ylabel('True Positive Rate (Sensitivity)')
+
+        plt.show()
+
