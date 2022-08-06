@@ -1,4 +1,4 @@
-from sklearn.metrics import confusion_matrix, classification_report, roc_curve
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve, roc_auc_score
 import matplotlib.pyplot as plt
 
 class Evaluation:
@@ -115,4 +115,8 @@ class Evaluation:
         plt.ylabel('True Positive Rate (Sensitivity)')
 
         plt.show()
+
+        ROC_AUC = roc_auc_score(y_test, y_pred1)
+
+        print('ROC AUC : {:.4f}'.format(ROC_AUC))
 
