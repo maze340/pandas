@@ -116,7 +116,12 @@ class Evaluation:
 
         plt.show()
 
-        ROC_AUC = roc_auc_score(y_test, y_pred1)
+    def getAUC(self, classval):
+        pbs = self.predict_proba(classval)
 
-        print('ROC AUC : {:.4f}'.format(ROC_AUC))
+        y_pred1 = pbs
+        y_test = self.target_test
+        
+        return roc_auc_score(y_test, y_pred1)
+    
 
