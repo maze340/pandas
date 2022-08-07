@@ -108,7 +108,7 @@ class Evaluation:
 
         plt.rcParams['font.size'] = 12
 
-        plt.title('ROC curve for Gaussian Naive Bayes Classifier for Predicting Salaries')
+        plt.title('ROC curve')
 
         plt.xlabel('False Positive Rate (1 - Specificity)')
 
@@ -119,5 +119,9 @@ class Evaluation:
     def getAUC(self, classval):
         pbs = self.predict_proba(classval)
         y_pred1 = pbs
-        y_test = self.target_test
-        return roc_auc_score(y_test, y_pred1)
+        y_test = list(self.target_test)
+
+        # print(y_pred1)
+        # print(list(y_test))
+        auc = roc_auc_score(y_test, y_pred1)
+        print(auc)
