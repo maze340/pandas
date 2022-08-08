@@ -120,8 +120,5 @@ class Evaluation:
         pbs = self.predict_proba(classval)
         y_pred1 = pbs
         y_test = list(self.target_test)
-
-        # print(y_pred1)
-        # print(list(y_test))
         auc = roc_auc_score(y_test, y_pred1)
-        print(auc)
+        return auc
